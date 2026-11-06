@@ -1,9 +1,11 @@
 {
-  "version": "2026-11-04-stub",
+  "version": "2026-11-06",
   "files": [
     "00-overview.md",
+    "05-patches.md",
     "10-jobs.md",
     "20-training.md",
-    "30-quests.md"
+    "30-quests-and-pq.md",
+    "40-economy.md"
   ]
 }

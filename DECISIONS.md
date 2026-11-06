@@ -10,3 +10,8 @@
 - **Auto new conversation above 80K prompt tokens** (Haiku's price doubles above 100K).
 - **Knowledge loading**: GitHub raw (main) -> local cache -> bundled copy. Frozen per conversation.
 - **Updates**: app shows a banner linking to the latest Release; it does not self-replace the exe.
+
+## 2026-11-06 - Knowledge sourcing
+- Respect each site's robots.txt and terms. meowdb.com: no bulk harvesting without permission, so it is only a live-search source. MSCWHub: personal non-commercial reuse with attribution, facts paraphrased with links.
+- Low-quality pages that contradict official info (e.g. old 2005 stat requirements, wrong job trees) are excluded and called out in `10-jobs.md`.
+- Pushed directly to `main` with the user's approval (2026-11-06).
