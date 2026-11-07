@@ -25,9 +25,8 @@ def main() -> int:
     app.setWindowIcon(make_icon())
 
     if not hotkey.acquire_single_instance():
-        from PySide6.QtWidgets import QMessageBox
-        QMessageBox.information(None, "עוזר מייפל",
-                                "העוזר כבר פתוח. חפש את האייקון הכתום M ליד השעון.")
+        from .ui import message
+        message("info", "עוזר מייפל", "העוזר כבר פתוח. חפש את האייקון הכתום M ליד השעון.")
         return 0
 
     settings = config.Settings.load()

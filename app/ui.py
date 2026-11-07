@@ -41,6 +41,35 @@ QPushButton#mode[deep="true"] { background: #4a3a7a; }
 """
 
 
+DIALOG_STYLE = """
+QDialog, QMessageBox { background: #20232b; }
+QLabel { color: #e6e6e6; }
+QLineEdit, QComboBox, QDoubleSpinBox { background: #11131a; color: #ffffff;
+    border: 1px solid #4a5060; border-radius: 4px; padding: 4px; }
+QPushButton { background: #2c313c; color: #e6e6e6; border: 1px solid #444b59;
+    border-radius: 4px; padding: 4px 12px; }
+QPushButton:hover { background: #3a4150; }
+"""
+
+
+def message(kind: str, title: str, text: str) -> int:
+    """Top-level, always-on-top, opaque message box.
+
+    Never parented to the overlay: the overlay is a translucent, topmost tool
+    window, and children of it can render see-through or end up behind it."""
+    icons = {"info": QMessageBox.Information, "warn": QMessageBox.Warning,
+             "ask": QMessageBox.Question}
+    box = QMessageBox(icons[kind], title, text)
+    box.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+    box.setStyleSheet(DIALOG_STYLE)
+    box.setLayoutDirection(Qt.RightToLeft)
+    if kind == "ask":
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+    box.raise_()
+    box.activateWindow()
+    return box.exec()
+
+
 def make_icon() -> QIcon:
     pix = QPixmap(64, 64)
     pix.fill(Qt.transparent)
@@ -114,8 +143,10 @@ class HotkeyBridge(QObject):
 
 class SettingsDialog(QDialog):
     def __init__(self, settings: config.Settings, parent=None, first_run: bool = False):
-        super().__init__(parent)
+        super().__init__(None)
         self.settings = settings
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+        self.setStyleSheet(DIALOG_STYLE)
         self.setWindowTitle("הגדרות - עוזר מייפל")
         self.setLayoutDirection(Qt.RightToLeft)
         self.setMinimumWidth(460)
@@ -175,17 +206,17 @@ class SettingsDialog(QDialog):
                 anthropic.Anthropic(api_key=key, timeout=15, max_retries=1).models.retrieve(FAST_MODEL)
             except anthropic.AuthenticationError:
                 QApplication.restoreOverrideCursor()
-                QMessageBox.warning(self, "מפתח לא תקין", "המפתח נדחה על ידי Anthropic. בדוק שהעתקת אותו במלואו.")
+                message("warn", "מפתח לא תקין", "המפתח נדחה על ידי Anthropic. בדוק שהעתקת אותו במלואו.")
                 return
             except Exception as e:
                 QApplication.restoreOverrideCursor()
-                if QMessageBox.question(self, "לא הצלחתי לבדוק",
+                if message("ask", "לא הצלחתי לבדוק",
                                         f"לא הצלחתי לאמת את המפתח ({e}).\nלשמור בכל זאת?") != QMessageBox.Yes:
                     return
             QApplication.restoreOverrideCursor()
             config.save_api_key(key)
         elif self._first_run:
-            QMessageBox.warning(self, "חסר מפתח", "צריך מפתח API כדי שהעוזר יעבוד.")
+            message("warn", "חסר מפתח", "צריך מפתח API כדי שהעוזר יעבוד.")
             return
         mods, hk = self.hotkey_combo.currentData()
         self.settings.hotkey_modifiers, self.settings.hotkey_key = list(mods), hk
@@ -305,7 +336,7 @@ class Overlay(QWidget):
             if hk.error == "unsupported":
                 return
         if self._hotkey is None:
-            QMessageBox.warning(self, "מקש קיצור",
+            message("warn", "מקש קיצור",
                                 "כל מקשי הקיצור האפשריים תפוסים על ידי תוכנות אחרות.\n"
                                 "אפשר לפתוח את העוזר מהאייקון הכתום M שליד השעון.")
             return
@@ -314,7 +345,7 @@ class Overlay(QWidget):
             old_name = hotkey.describe(*wanted)
             self.settings.hotkey_modifiers, self.settings.hotkey_key = mods, key
             self.settings.save()
-            QMessageBox.information(self, "מקש קיצור",
+            message("info", "מקש קיצור",
                                     f"{old_name} תפוס על ידי תוכנה אחרת במחשב.\n"
                                     f"עברתי ל-{name}. אפשר לשנות בהגדרות (⚙).")
         self.input.setPlaceholderText(f"שאל שאלה ולחץ Enter  ·  Esc להסתרה  ·  {name} לפתיחה")
@@ -467,12 +498,18 @@ class Overlay(QWidget):
             self.pending_image = None
 
     def open_settings(self, first_run: bool = False) -> bool:
-        dlg = SettingsDialog(self.settings, self if self.isVisible() else None, first_run=first_run)
+        was_visible = self.isVisible()
+        self.hide()  # avoid two topmost windows fighting over focus
+        dlg = SettingsDialog(self.settings, first_run=first_run)
+        dlg.raise_()
+        dlg.activateWindow()
         ok = dlg.exec() == QDialog.Accepted
         if ok:
             self.setWindowOpacity(self.settings.opacity)
             self.register_hotkey()
             self.new_conversation(quiet=True)
+        if was_visible or first_run:
+            self.show_overlay()
         return ok
 
     def show_update(self, tag: str, url: str) -> None:

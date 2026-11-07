@@ -66,11 +66,25 @@ def test_hotkey_falls_back_when_taken(monkeypatch):
 
     shown = []
     monkeypatch.setattr(hotkey, "GlobalHotkey", FakeHotkey)
-    monkeypatch.setattr(QMessageBox, "information", lambda *a: shown.append(a[2]))
-    monkeypatch.setattr(QMessageBox, "warning", lambda *a: shown.append(a[2]))
+    monkeypatch.setattr(ui, "message", lambda kind, title, text: shown.append(text))
 
     overlay = ui.Overlay(Settings())
     overlay.register_hotkey()
     assert (overlay.settings.hotkey_modifiers, overlay.settings.hotkey_key) == (["ctrl", "shift"], "Q")
     assert shown and "Ctrl+Shift+Q" in shown[0]
+    app.processEvents()
+
+
+def test_settings_dialog_is_top_level_and_on_top():
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+
+    from app import ui
+    from app.config import Settings
+
+    app = QApplication.instance() or QApplication([])
+    dlg = ui.SettingsDialog(Settings())
+    assert dlg.parent() is None
+    assert dlg.windowFlags() & Qt.WindowStaysOnTopHint
+    assert "background" in dlg.styleSheet()
     app.processEvents()
