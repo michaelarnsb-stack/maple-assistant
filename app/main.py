@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
-from . import config
+from . import config, hotkey
 from .ui import Overlay, StartupWorker, build_tray, make_icon
 
 
@@ -23,6 +23,12 @@ def main() -> int:
     app.setLayoutDirection(Qt.RightToLeft)
     app.setFont(QFont("Segoe UI", 10))
     app.setWindowIcon(make_icon())
+
+    if not hotkey.acquire_single_instance():
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(None, "עוזר מייפל",
+                                "העוזר כבר פתוח. חפש את האייקון הכתום M ליד השעון.")
+        return 0
 
     settings = config.Settings.load()
     overlay = Overlay(settings)

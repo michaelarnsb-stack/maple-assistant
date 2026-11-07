@@ -64,7 +64,7 @@ class GlobalHotkey:
 
     def start(self) -> bool:
         if sys.platform != "win32":
-            self.error = "Global hotkeys are only supported on Windows."
+            self.error = "unsupported"
             return False
         self._thread = threading.Thread(target=self._run, name="hotkey", daemon=True)
         self._thread.start()
@@ -80,7 +80,7 @@ class GlobalHotkey:
         kernel32 = ctypes.windll.kernel32
         self._thread_id = kernel32.GetCurrentThreadId()
         if not user32.RegisterHotKey(None, self.HOTKEY_ID, self._mods, self._vk):
-            self.error = "Hotkey is already used by another program."
+            self.error = "taken"
             self._registered.set()
             return
         self._registered.set()
@@ -92,6 +92,18 @@ class GlobalHotkey:
                     self._callback(hwnd)
         finally:
             user32.UnregisterHotKey(None, self.HOTKEY_ID)
+
+
+def acquire_single_instance(name: str = "MapleAssistantSingleInstance") -> bool:
+    """True if this is the only running copy. Keeps the mutex for the process lifetime."""
+    if sys.platform != "win32":
+        return True
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    handle = kernel32.CreateMutexW(None, False, name)
+    already = ctypes.get_last_error() == 183  # ERROR_ALREADY_EXISTS
+    globals()["_instance_mutex"] = handle  # keep the handle alive
+    return not (handle and already)
 
 
 def restore_focus(hwnd: int | None) -> None:

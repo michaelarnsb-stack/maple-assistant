@@ -39,3 +39,38 @@ def test_overlay_renders_answer(monkeypatch):
     assert overlay.settings.mode != mode_before and overlay.turns == []
     overlay.shutdown()
     app.processEvents()
+
+
+def test_hotkey_falls_back_when_taken(monkeypatch):
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    from app import hotkey, ui
+    from app.config import Settings
+
+    app = QApplication.instance() or QApplication([])
+    taken = {("ctrl", "shift", "A")}
+
+    class FakeHotkey:
+        def __init__(self, mods, key, cb):
+            self.combo = (*mods, key)
+            self.error = None
+
+        def start(self):
+            if self.combo in taken:
+                self.error = "taken"
+                return False
+            return True
+
+        def stop(self):
+            pass
+
+    shown = []
+    monkeypatch.setattr(hotkey, "GlobalHotkey", FakeHotkey)
+    monkeypatch.setattr(QMessageBox, "information", lambda *a: shown.append(a[2]))
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a: shown.append(a[2]))
+
+    overlay = ui.Overlay(Settings())
+    overlay.register_hotkey()
+    assert (overlay.settings.hotkey_modifiers, overlay.settings.hotkey_key) == (["ctrl", "shift"], "Q")
+    assert shown and "Ctrl+Shift+Q" in shown[0]
+    app.processEvents()

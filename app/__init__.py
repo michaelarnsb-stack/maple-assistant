@@ -1,3 +1,3 @@
 """Maple Assistant - in-game Claude overlay for MapleStory Classic World."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

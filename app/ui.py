@@ -290,16 +290,34 @@ class Overlay(QWidget):
 
     # hotkey
     def register_hotkey(self) -> None:
+        """Register the chosen hotkey; if another program owns it, fall back to
+        the first free preset and tell the player which one is active."""
         if self._hotkey:
             self._hotkey.stop()
-        self._hotkey = hotkey.GlobalHotkey(self.settings.hotkey_modifiers, self.settings.hotkey_key,
-                                           self._bridge.pressed.emit)
-        name = hotkey.describe(self.settings.hotkey_modifiers, self.settings.hotkey_key)
-        if not self._hotkey.start():
-            QMessageBox.warning(self, "מקש קיצור", f"לא הצלחתי לרשום את {name}: {self._hotkey.error}\n"
-                                "בחר מקש אחר בהגדרות. ייתכן שהעוזר כבר פתוח.")
-        else:
-            self.input.setPlaceholderText(f"שאל שאלה ולחץ Enter  ·  Esc להסתרה  ·  {name} לפתיחה")
+            self._hotkey = None
+        wanted = (list(self.settings.hotkey_modifiers), self.settings.hotkey_key)
+        candidates = [wanted] + [(list(m), k) for m, k in HOTKEY_PRESETS if (list(m), k) != wanted]
+        for mods, key in candidates:
+            hk = hotkey.GlobalHotkey(mods, key, self._bridge.pressed.emit)
+            if hk.start():
+                self._hotkey = hk
+                break
+            if hk.error == "unsupported":
+                return
+        if self._hotkey is None:
+            QMessageBox.warning(self, "מקש קיצור",
+                                "כל מקשי הקיצור האפשריים תפוסים על ידי תוכנות אחרות.\n"
+                                "אפשר לפתוח את העוזר מהאייקון הכתום M שליד השעון.")
+            return
+        name = hotkey.describe(mods, key)
+        if (mods, key) != wanted:
+            old_name = hotkey.describe(*wanted)
+            self.settings.hotkey_modifiers, self.settings.hotkey_key = mods, key
+            self.settings.save()
+            QMessageBox.information(self, "מקש קיצור",
+                                    f"{old_name} תפוס על ידי תוכנה אחרת במחשב.\n"
+                                    f"עברתי ל-{name}. אפשר לשנות בהגדרות (⚙).")
+        self.input.setPlaceholderText(f"שאל שאלה ולחץ Enter  ·  Esc להסתרה  ·  {name} לפתיחה")
 
     def on_hotkey(self, hwnd: int | None) -> None:
         own = int(self.winId())
