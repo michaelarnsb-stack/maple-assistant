@@ -1,0 +1,296 @@
+<title>עוזר מייפל</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&family=Assistant:wght@400;600&display=swap">
+<style>
+/* Layout: one-screen phone chat. Sticky header, scrolling message column, composer pinned to the bottom. */
+:root {
+  --bg: #f3f5f8;          /* morning-sky grey-blue */
+  --surface: #ffffff;
+  --ink: #1d2430;
+  --muted: #5d6878;
+  --line: #d9dee6;
+  --leaf: #e0701b;        /* maple orange */
+  --leaf-ink: #ffffff;
+  --me: #fde9d8;          /* player bubble */
+  --warn: #9a5b00;
+  --display: "Rubik", "Segoe UI", system-ui, sans-serif;
+  --body: "Assistant", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141922; --surface: #1d2330; --ink: #e8ecf2; --muted: #9aa5b5;
+    --line: #2d3545; --leaf: #f08a3c; --leaf-ink: #1a1206; --me: #3a2a1c; --warn: #f0b45a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141922; --surface: #1d2330; --ink: #e8ecf2; --muted: #9aa5b5;
+  --line: #2d3545; --leaf: #f08a3c; --leaf-ink: #1a1206; --me: #3a2a1c; --warn: #f0b45a;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  display: flex; flex-direction: column; direction: rtl;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.bar { display: flex; align-items: center; gap: 10px; padding-block: 10px; max-width: 760px; margin-inline: auto; }
+.logo { width: 30px; height: 30px; border-radius: 50%; background: var(--leaf); color: var(--leaf-ink);
+  display: grid; place-items: center; font: 700 16px/1 var(--display); flex: none; }
+h1 { font: 700 18px/1.2 var(--display); margin: 0; }
+.sub { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow { flex: 1; min-width: 0; }
+button { font: 600 14px/1 var(--body); color: var(--ink); background: transparent; border: 1px solid var(--line);
+  border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 7px 11px; }
+.seg button[aria-pressed="true"] { background: var(--leaf); color: var(--leaf-ink); }
+main { flex: 1; overflow-y: auto; }
+.log { max-width: 760px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; padding-block: 18px; }
+.intro { display: flex; flex-direction: column; gap: 12px; }
+.intro h2 { font: 500 22px/1.3 var(--display); margin: 0; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); max-width: 60ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { background: var(--surface); text-align: start; line-height: 1.35; }
+.msg { max-width: 92%; min-width: 0; padding: 10px 14px; border-radius: 16px; overflow-wrap: anywhere; }
+.msg.me { align-self: flex-start; background: var(--me); border-start-start-radius: 4px; }
+.msg.bot { align-self: flex-end; background: var(--surface); border: 1px solid var(--line); border-start-end-radius: 4px; width: 92%; }
+.msg.bot p, .msg.bot ul, .msg.bot ol { margin: 0 0 8px; }
+.msg.bot :last-child { margin-bottom: 0; }
+.msg.bot ul, .msg.bot ol { padding-inline-start: 20px; }
+.msg.bot h3 { font: 500 16px/1.3 var(--display); margin: 4px 0 6px; }
+.msg.bot strong { font-weight: 600; }
+.msg.bot code { font-size: 0.92em; background: var(--bg); padding: 1px 4px; border-radius: 4px; }
+.thinking { color: var(--muted); font-style: italic; }
+.note { color: var(--warn); font-size: 13px; }
+footer { background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.composer { max-width: 760px; margin-inline: auto; display: flex; gap: 8px; align-items: flex-end; padding-block: 10px; }
+textarea { flex: 1; min-width: 0; resize: none; font: 400 16px/1.4 var(--body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; max-height: 140px; }
+#send { background: var(--leaf); color: var(--leaf-ink); border-color: var(--leaf); padding: 11px 16px; }
+#send:disabled { opacity: 0.5; cursor: default; }
+.fine { max-width: 760px; margin-inline: auto; color: var(--muted); font-size: 12px; padding-bottom: 8px; }
+@media (prefers-reduced-motion: no-preference) { .msg { animation: rise 160ms ease-out; } }
+@keyframes rise { from { transform: translateY(4px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+</style>
+
+<header>
+  <div class="wrap"><div class="bar">
+    <div class="logo" aria-hidden="true">M</div>
+    <div class="grow">
+      <h1>עוזר מייפל</h1>
+      <div class="sub" title="מאגר ידע __KB_VERSION__">Classic World · מאגר __KB_VERSION__</div>
+    </div>
+    <div class="seg" role="group" aria-label="מצב">
+      <button id="mode-fast" type="button" aria-pressed="true" title="תשובה מהירה">⚡ מהיר</button>
+      <button id="mode-deep" type="button" aria-pressed="false" title="חושב יותר לפני שעונה">🔍 מעמיק</button>
+    </div>
+    <button id="reset" type="button" title="שיחה חדשה">חדש</button>
+  </div></div>
+</header>
+
+<main id="scroller">
+  <div class="wrap"><div class="log" id="log" aria-live="polite">
+    <section class="intro" id="intro">
+      <h2>מה רצית לדעת על Classic World?</h2>
+      <p>אני עונה לפי מאגר ידע שבנינו ל-Classic World (עדכון v1.1.0). בלי צילומי מסך כאן, אז ספר לי את הרמה והג'וב שלך כשזה רלוונטי.</p>
+      <div class="chips" id="chips">
+        <button type="button">אני חדש. איזה ג'וב מתאים למי שמשחק בעיקר סולו?</button>
+        <button type="button">אני Thief ברמה 24. איפה כדאי להתאמן?</button>
+        <button type="button">איך עובד KPQ ומה מקבלים?</button>
+        <button type="button">מה השתנה בעדכון 1.1.0?</button>
+      </div>
+    </section>
+  </div></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <form class="composer" id="form">
+      <label for="q" hidden>שאלה</label>
+      <textarea id="q" rows="1" placeholder="שאל שאלה על המשחק..." enterkeyhint="send"></textarea>
+      <button id="send" type="submit">שלח</button>
+    </form>
+    <div class="fine" id="fine">כל שאלה נספרת על חשבון ה-Claude של מי ששואל. העוזר נותן עצות בלבד.</div>
+  </div>
+</footer>
+
+<script>
+const KB_VERSION = "__KB_VERSION__";
+const KNOWLEDGE = __KNOWLEDGE_JSON__;
+const RULES = `You are an assistant for players of MapleStory Classic World (Nexon, global launch October 21 2026). The player is on their phone, not in the game, so there is no screenshot.
+
+<language>Answer in Hebrew. Keep every in-game name exactly as the English client shows it (maps, monsters, NPCs, items, skills, jobs, STR/DEX/INT/LUK, AP, SP). Do not translate or transliterate them.</language>
+
+<style>Lead with the direct answer in the first line, then at most 6 short bullet points unless the player asks for more. No preamble, no closing offers. Use Markdown: **bold** for key names and numbers, "- " bullets.</style>
+
+<sources>Classic World is a re-creation and differs from the original 2005-2008 game. Trust the knowledge base below first. When a fact comes only from your memory of the original game, mark it "(לפי המשחק המקורי - כדאי לוודא)". You cannot browse the web: if you don't know, say so and suggest checking mscwhub.com or meowdb.com/msclassic. If the player's level or job matters and they didn't say it, give a short general answer and ask for it.</sources>
+
+<boundaries>Advice only. Never help with bots, macros, hacks, exploits, duplication or real-money trading. They break Nexon's terms, bans are shared with modern MapleStory, and RMT triggers the Debt System.</boundaries>
+
+${KNOWLEDGE}`;
+
+const MAX_TURNS = 16;
+const STORE_KEY = "maple-chat-v1";
+const $ = (id) => document.getElementById(id);
+const log = $("log"), form = $("form"), q = $("q"), send = $("send");
+let turns = [];   // {role, content}
+let mode = "fast";
+let ctl = null;
+let samplePromise = window.claude?.use ? window.claude.use("sample") : Promise.resolve(null);
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (Array.isArray(s.turns)) turns = s.turns.filter(t => t && t.content);
+      if (s.mode === "deep") mode = "deep";
+    }
+  } catch {}
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ turns: turns.slice(-40), mode })); } catch {}
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function inline(s) {
+  return escapeHtml(s)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/(^|[\s(])_([^_]+)_(?=[\s).,!?]|$)/g, "$1<em>$2</em>");
+}
+// Small, escape-first Markdown: headings, bullets, numbered lists, paragraphs.
+function renderMd(md) {
+  const out = [];
+  let list = null;
+  const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of md.split("\n")) {
+    const line = raw.trimEnd();
+    let m;
+    if (!line.trim()) { close(); continue; }
+    if ((m = line.match(/^\s*#{1,4}\s+(.*)$/))) { close(); out.push(`<h3>${inline(m[1])}</h3>`); continue; }
+    if ((m = line.match(/^\s*[-*•]\s+(.*)$/))) { if (list !== "ul") { close(); out.push("<ul>"); list = "ul"; } out.push(`<li>${inline(m[1])}</li>`); continue; }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))) { if (list !== "ol") { close(); out.push("<ol>"); list = "ol"; } out.push(`<li>${inline(m[1])}</li>`); continue; }
+    if (/^\s*(---|\*\*\*)\s*$/.test(line)) { close(); continue; }
+    close(); out.push(`<p>${inline(line)}</p>`);
+  }
+  close();
+  return out.join("");
+}
+
+function bubble(role, content) {
+  const el = document.createElement("div");
+  el.className = "msg " + (role === "user" ? "me" : "bot");
+  if (role === "user") el.textContent = content; else el.innerHTML = renderMd(content);
+  log.append(el);
+  return el;
+}
+function scrollDown() { const s = $("scroller"); s.scrollTop = s.scrollHeight; }
+function renderAll() {
+  log.querySelectorAll(".msg").forEach(n => n.remove());
+  $("intro").hidden = turns.length > 0;
+  for (const t of turns) bubble(t.role, t.content);
+  scrollDown();
+}
+function setMode(m) {
+  mode = m;
+  $("mode-fast").setAttribute("aria-pressed", String(m === "fast"));
+  $("mode-deep").setAttribute("aria-pressed", String(m === "deep"));
+  save();
+}
+function setBusy(busy) {
+  send.textContent = busy ? "עצור" : "שלח";
+  send.dataset.busy = busy ? "1" : "";
+  q.disabled = busy;
+}
+
+const ERRORS = {
+  not_granted: "צריך לאשר לדף להשתמש ב-Claude. רענן את הדף ואשר בחלון שנפתח.",
+  sampling_disabled: "Claude לא זמין בחשבון הזה.",
+  rate_limited: "הגעת למגבלת השימוש כרגע. נסה שוב בעוד כמה דקות.",
+  session_expired: "צריך להתחבר מחדש ל-claude.ai.",
+  refused: "Claude לא ענה על השאלה הזו. נסה לנסח אחרת.",
+  prompt_too_large: "השיחה ארוכה מדי. לחץ \"חדש\" והתחל שיחה חדשה.",
+  empty_completion: "לא התקבלה תשובה. נסה לנסח אחרת.",
+};
+
+async function ask(text) {
+  text = text.trim();
+  if (!text) return;
+  const sample = await samplePromise;
+  if (!sample) {
+    bubble("assistant", "_הדף הזה עובד רק כשפותחים אותו בתוך claude.ai כשאתה מחובר לחשבון._");
+    return;
+  }
+  $("intro").hidden = true;
+  turns.push({ role: "user", content: text });
+  save();
+  bubble("user", text);
+  const el = bubble("assistant", "");
+  el.innerHTML = '<span class="thinking">חושב...</span>';
+  scrollDown();
+  setBusy(true);
+  ctl = new AbortController();
+  const history = turns.slice(-MAX_TURNS);
+  while (history.length && history[0].role !== "user") history.shift();
+  try {
+    const { text: answer, truncated } = await sample([{ role: "user", content: RULES }, ...history], {
+      cache: false,
+      signal: ctl.signal,
+      modelTier: mode === "deep" ? "default" : "quick",
+      onText: ({ text }) => { el.innerHTML = renderMd(text); scrollDown(); },
+    });
+    const final = truncated ? answer + "\n\n_(התשובה נקטעה - אפשר לבקש המשך)_" : answer;
+    el.innerHTML = renderMd(final);
+    turns.push({ role: "assistant", content: final });
+  } catch (e) {
+    const kept = e && e.text ? e.text : "";
+    if (e && e.code === "cancelled") {
+      el.innerHTML = kept ? renderMd(kept) : '<span class="note">נעצר.</span>';
+      if (kept) turns.push({ role: "assistant", content: kept });
+    } else {
+      const msg = ERRORS[e && e.code] || "משהו השתבש בחיבור. נסה שוב.";
+      el.innerHTML = (kept && e.code !== "refused" ? renderMd(kept) : "") + `<p class="note">${escapeHtml(msg)}</p>`;
+    }
+  } finally {
+    ctl = null;
+    setBusy(false);
+    save();
+    scrollDown();
+    q.focus();
+  }
+}
+
+form.addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  if (send.dataset.busy) { ctl?.abort(); return; }
+  const text = q.value;
+  q.value = ""; q.style.height = "";
+  ask(text);
+});
+q.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); form.requestSubmit(); }
+});
+q.addEventListener("input", () => { q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 140) + "px"; });
+$("chips").addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (b) ask(b.textContent); });
+$("mode-fast").addEventListener("click", () => setMode("fast"));
+$("mode-deep").addEventListener("click", () => setMode("deep"));
+$("reset").addEventListener("click", () => { ctl?.abort(); turns = []; save(); renderAll(); });
+
+load();
+setMode(mode);
+renderAll();
+samplePromise.then((s) => {
+  if (!s) $("fine").textContent = "הדף עובד רק בתוך claude.ai כשאתה מחובר. כל שאלה נספרת על חשבון ה-Claude שלך.";
+});
+</script>

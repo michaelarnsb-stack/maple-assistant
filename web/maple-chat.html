@@ -1,0 +1,296 @@
+<title>עוזר מייפל</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&family=Assistant:wght@400;600&display=swap">
+<style>
+/* Layout: one-screen phone chat. Sticky header, scrolling message column, composer pinned to the bottom. */
+:root {
+  --bg: #f3f5f8;          /* morning-sky grey-blue */
+  --surface: #ffffff;
+  --ink: #1d2430;
+  --muted: #5d6878;
+  --line: #d9dee6;
+  --leaf: #e0701b;        /* maple orange */
+  --leaf-ink: #ffffff;
+  --me: #fde9d8;          /* player bubble */
+  --warn: #9a5b00;
+  --display: "Rubik", "Segoe UI", system-ui, sans-serif;
+  --body: "Assistant", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141922; --surface: #1d2330; --ink: #e8ecf2; --muted: #9aa5b5;
+    --line: #2d3545; --leaf: #f08a3c; --leaf-ink: #1a1206; --me: #3a2a1c; --warn: #f0b45a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141922; --surface: #1d2330; --ink: #e8ecf2; --muted: #9aa5b5;
+  --line: #2d3545; --leaf: #f08a3c; --leaf-ink: #1a1206; --me: #3a2a1c; --warn: #f0b45a;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  display: flex; flex-direction: column; direction: rtl;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.bar { display: flex; align-items: center; gap: 10px; padding-block: 10px; max-width: 760px; margin-inline: auto; }
+.logo { width: 30px; height: 30px; border-radius: 50%; background: var(--leaf); color: var(--leaf-ink);
+  display: grid; place-items: center; font: 700 16px/1 var(--display); flex: none; }
+h1 { font: 700 18px/1.2 var(--display); margin: 0; }
+.sub { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow { flex: 1; min-width: 0; }
+button { font: 600 14px/1 var(--body); color: var(--ink); background: transparent; border: 1px solid var(--line);
+  border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 7px 11px; }
+.seg button[aria-pressed="true"] { background: var(--leaf); color: var(--leaf-ink); }
+main { flex: 1; overflow-y: auto; }
+.log { max-width: 760px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; padding-block: 18px; }
+.intro { display: flex; flex-direction: column; gap: 12px; }
+.intro h2 { font: 500 22px/1.3 var(--display); margin: 0; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); max-width: 60ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { background: var(--surface); text-align: start; line-height: 1.35; }
+.msg { max-width: 92%; min-width: 0; padding: 10px 14px; border-radius: 16px; overflow-wrap: anywhere; }
+.msg.me { align-self: flex-start; background: var(--me); border-start-start-radius: 4px; }
+.msg.bot { align-self: flex-end; background: var(--surface); border: 1px solid var(--line); border-start-end-radius: 4px; width: 92%; }
+.msg.bot p, .msg.bot ul, .msg.bot ol { margin: 0 0 8px; }
+.msg.bot :last-child { margin-bottom: 0; }
+.msg.bot ul, .msg.bot ol { padding-inline-start: 20px; }
+.msg.bot h3 { font: 500 16px/1.3 var(--display); margin: 4px 0 6px; }
+.msg.bot strong { font-weight: 600; }
+.msg.bot code { font-size: 0.92em; background: var(--bg); padding: 1px 4px; border-radius: 4px; }
+.thinking { color: var(--muted); font-style: italic; }
+.note { color: var(--warn); font-size: 13px; }
+footer { background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.composer { max-width: 760px; margin-inline: auto; display: flex; gap: 8px; align-items: flex-end; padding-block: 10px; }
+textarea { flex: 1; min-width: 0; resize: none; font: 400 16px/1.4 var(--body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; max-height: 140px; }
+#send { background: var(--leaf); color: var(--leaf-ink); border-color: var(--leaf); padding: 11px 16px; }
+#send:disabled { opacity: 0.5; cursor: default; }
+.fine { max-width: 760px; margin-inline: auto; color: var(--muted); font-size: 12px; padding-bottom: 8px; }
+@media (prefers-reduced-motion: no-preference) { .msg { animation: rise 160ms ease-out; } }
+@keyframes rise { from { transform: translateY(4px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+</style>
+
+<header>
+  <div class="wrap"><div class="bar">
+    <div class="logo" aria-hidden="true">M</div>
+    <div class="grow">
+      <h1>עוזר מייפל</h1>
+      <div class="sub" title="מאגר ידע 2026-11-06">Classic World · מאגר 2026-11-06</div>
+    </div>
+    <div class="seg" role="group" aria-label="מצב">
+      <button id="mode-fast" type="button" aria-pressed="true" title="תשובה מהירה">⚡ מהיר</button>
+      <button id="mode-deep" type="button" aria-pressed="false" title="חושב יותר לפני שעונה">🔍 מעמיק</button>
+    </div>
+    <button id="reset" type="button" title="שיחה חדשה">חדש</button>
+  </div></div>
+</header>
+
+<main id="scroller">
+  <div class="wrap"><div class="log" id="log" aria-live="polite">
+    <section class="intro" id="intro">
+      <h2>מה רצית לדעת על Classic World?</h2>
+      <p>אני עונה לפי מאגר ידע שבנינו ל-Classic World (עדכון v1.1.0). בלי צילומי מסך כאן, אז ספר לי את הרמה והג'וב שלך כשזה רלוונטי.</p>
+      <div class="chips" id="chips">
+        <button type="button">אני חדש. איזה ג'וב מתאים למי שמשחק בעיקר סולו?</button>
+        <button type="button">אני Thief ברמה 24. איפה כדאי להתאמן?</button>
+        <button type="button">איך עובד KPQ ומה מקבלים?</button>
+        <button type="button">מה השתנה בעדכון 1.1.0?</button>
+      </div>
+    </section>
+  </div></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <form class="composer" id="form">
+      <label for="q" hidden>שאלה</label>
+      <textarea id="q" rows="1" placeholder="שאל שאלה על המשחק..." enterkeyhint="send"></textarea>
+      <button id="send" type="submit">שלח</button>
+    </form>
+    <div class="fine" id="fine">כל שאלה נספרת על חשבון ה-Claude של מי ששואל. העוזר נותן עצות בלבד.</div>
+  </div>
+</footer>
+
+<script>
+const KB_VERSION = "2026-11-06";
+const KNOWLEDGE = "<knowledge_base version=\"2026-11-06\">\n\n<file name=\"00-overview.md\">\n# MapleStory Classic World - overview and rules\n\nStatus: VERIFIED-PARTIAL (2026-11-06). Confidence per line: high / medium / low.\nMain source: MSCWHub guides (https://mscwhub.com/en/guides), which cite Nexon's FAQ (2026-09-29),\nrelease notes and maintenance notices. Facts are paraphrased; see the linked pages for details.\n\n## What it is\n- Standalone client by Nexon, separate from modern MapleStory and from MapleStory Worlds. Installed via Nexon Launcher (toggle \"MapleStory Classic World\" under MapleStory) or Steam (install MapleStory, then the Classic World option; link Nexon account to Steam first). (high)\n- Free-to-play. Founder's Access Oct 6 2026, Grand Launch Oct 21 2026. Windows and macOS. (high)\n- Recreates pre-Big Bang MapleStory (\"a parallel world where Big Bang never happened\") with balance changes, reworked skills, a re-tuned EXP curve (about 1.25x the old table from Lv 30, steeper after Lv 90), crafting, and new content. It is NOT a byte-for-byte copy: old-game knowledge can be wrong here. (high)\n- Level cap: 100. (medium - announced; CBT2 also capped at 100)\n- Languages: English official, Spanish beta. Option to always show item names in English. (high)\n- Controllers supported: DualSense, DualShock, Xbox (enable in options). (high)\n- You cannot run Classic World and modern MapleStory at the same time. (high)\n\n## Classes\n- Four classes only: Warrior, Magician, Bowman, Thief (plus Beginner). NO Pirate, no modern classes. (high)\n- 1st job at Lv 10, 2nd job at Lv 30. NO 3rd job at launch; Nexon said 3rd job and regions may come later and in a different order than the original. 4th job not available. (high)\n- 1st job advancement has no stat requirement in Classic World (the old \"20 INT / 25 DEX / 25 LUK\" rules do not apply). (medium - one source; some low-quality guides still state the old rule)\n- Job advancement towns: Warrior - Perion, Magician - Ellinia, Bowman - Henesys, Thief - Kerning City. (high)\n\n## World at launch\n- Open: Maple Island, Victoria Island (Henesys, Ellinia, Perion, Kerning City, Lith Harbor and surroundings), Sleepywood. (high)\n- Not open at launch: Orbis, El Nath, Ludibrium (no LPQ), Forgotten Hollow (new Lv 39-59 zone, tested in CBT1, \"coming in a future update\"). Verify with web search before sending the player there. (high for launch state; may have changed since)\n- Launch bosses: Mano, Mushmom, Shade, Zombie Mushmom, Jr. Balrog. Zakum is NOT in the game (\"Zakum\" is only a Founder's Package name). (high)\n- Party Quest: Kerning City PQ only (channels 3-12 since v1.0.0). Henesys PQ and Ludibrium PQ not available. (high)\n- Free Market with 20 rooms (no Auction House). 40 channels on world Windia. (high)\n- Gear enhancement: legacy scrolls only (no Starforce/Potential/Flames). A failed scroll can destroy the item. (high)\n\n## Account rules (important for advice)\n- Characters start at Lv 1; nothing carries over from modern MapleStory except the NX balance. (high)\n- Bans are shared between Classic World and modern MapleStory. (high)\n- Trading unlocks after reaching Lv 15 and then waiting 24 hours. (medium)\n- Debt System (since Oct 22): accounts caught in real-money trading owe a meso debt; until repaid they cannot trade, gift, open stores, drop items, or (since v1.1.0) pick up other players' drops. Never advise RMT or buying mesos. (high)\n- Megaphones need Lv 15; whispers need Lv 10. (high)\n- Citizenship system unlocks at Lv 12: town rank discounts on shops/storage (5% at first rank up to 50% at \"Citizen of Honor\"). (medium)\n\n## Useful community sites (cite, do not invent)\n- mscwhub.com - guides, wiki, EXP calculator\n- meowdb.com/msclassic - database, training advisor (live lookups only)\n- metaroad.gg/maplestory-classic - patch summaries, skill planner\n<\/file>\n\n<file name=\"05-patches.md\">\n# Patch history\n\nStatus: VERIFIED-PARTIAL (2026-11-06). Sources: https://metaroad.gg/maplestory-classic/news/maplestory-classic-world-october-29-patch-notes ,\nhttps://classicmaplewiki.com/guides/patch-notes/ (both summarize Nexon's maintenance notices).\nAnything newer than v1.1.0 is not recorded here: use web search for recent changes.\n\n## v1.1.0 - Oct 29 2026 (high)\n- Buffs: Focus (Archer) accuracy now 5-25; Poison Breath (F/P) damage 60-90 and fixed at Lv 10; Thunder Bolt (I/L) damage 50-80.\n- Fixes: Rush (Fighter/Page/Spearman) range grows 130 -> 150 as described; Spearman Final Attack HP absorb capped at 15% of Max HP.\n- Lower HP: Copper Drake, Tortie, Clang, Drake (new values unpublished).\n- More drops in Victoria Island monsters (unspecified).\n- Woodcrafting arrow conversion now 100 -> 50 per attempt (same 2:1 rate).\n- Players in debt cannot pick up other players' drops. Whispers need Lv 10.\n- Citizenship ranks 4-10 need less Contribution.\n- Fixes: Free Market stuck bug, channel-change disconnect with Final Attack, Mushroom Garden now allows Store Permit, Citizenship dailies could be done twice.\n\n## Oct 22 2026 - unscheduled maintenance (high)\n- Debt System introduced (see overview).\n- KPQ coupons/passes can be dropped by accounts that haven't met trade requirements.\n\n## v1.0.0 - Grand Launch, Oct 21 2026 (high)\n- 40 channels; KPQ on channels 3-12; new map The Murky Swamp II (Kerning City area); new Victoria Island quests; Free Market rooms 12-20.\n- Megaphones need Lv 15.\n- Warrior: Improved HP Recovery item bonus +20-50%; Iron Body Weapon DEF +20-40%.\n- Magician: Improved MP Recovery item bonus +10-25%.\n- Thief: Dark Sight now semi-transparent to all players.\n- Fixes: Final Attack duration 60s for all jobs; Poison Breath double MP cost; 2nd job quest failing with full Use inventory.\n<\/file>\n\n<file name=\"10-jobs.md\">\n# Jobs: choosing a class, 2nd job branches, builds\n\nStatus: VERIFIED-PARTIAL (2026-11-06). Skill numbers come from CBT2 client data and may have\nchanged at launch. Sources: https://mscwhub.com/en/guides/class-tier-list ,\nhttps://mscwhub.com/en/guides/warrior-branches , /magician-branches , /bowman-branches ,\n/thief-branches , /ap-build-guide , /third-job . Patch changes are in 05-patches.md.\n\nContext: no 3rd job at launch, so players live in their 2nd job for a long time.\nPick for the 2nd-job playstyle the player enjoys, not for 3rd-job hype.\n\n## Quick picker (when the player hasn't chosen)\n- Mob fast, easiest overall: Ice/Lightning Wizard (Magician)\n- Safest leveling, little potion spend: Assassin (Thief), Cleric (Magician)\n- Highest single-target damage: Bandit, Assassin (Thief)\n- Always wanted in parties: Cleric; Fighter (party ATK buff)\n- Range and safety: Hunter or Crossbowman (Bowman)\n- Tanky, forgiving melee: any Warrior; Fighter has the best MP efficiency\n- Makes the most mesos while leveling: Bandit (Steal)\n\n## 2nd-job power tier list (community, CBT2 data, Sept 2026) (medium)\n- S: Ice/Lightning Wizard, Assassin\n- A: Bandit, Fire/Poison Wizard, Crossbowman\n- B: Hunter, Cleric\n- C: Fighter, Spearman, Page\nGaps are small without 3rd job; v1.1.0 buffed Thunder Bolt and Poison Breath.\n\n## Warrior (advance in Perion) - main stat STR\n- Fighter: swords or axes (axes favored: Axe Mastery adds Bleed). Rage = party ATK buff (up to +40). Ultimate Attack hits up to 3. Low difficulty, best party Warrior.\n- Page: one-handed sword or blunt weapon (blunt favored: Blunt Mastery adds crit damage up to +20%). Threaten slows and lowers DEF of up to 4 monsters. Cheapest weapons. Defensive.\n- Spearman: spear (DEF ignore, best for leveling) or polearm (move speed). Longest melee reach; Iron Will = knockback resist; Final Attack heals (capped 15% Max HP since v1.1.0). Medium difficulty.\n- Future 3rd jobs: Crusader / White Knight / Dragon Knight (community favorite: Dragon Knight).\n\n## Magician (advance in Ellinia) - main stat INT\n- Ice/Lightning: Thunder Bolt hits up to 6 (best AoE), Cold Beam single target + slow; switch skills on lightning-resistant monsters. Teleport. Top tier.\n- Fire/Poison: Fire Arrow single target + burn; Poison Breath DoT splash up to 6. Good boss damage. Switch to poison vs fire-resistant mobs.\n- Cleric: Holy Arrow single target, Heal (party heal + damages undead), Bless. Weakest solo damage but lowest potion cost and always in demand. Great on undead maps (Wraiths, Zombie Mushrooms).\n- All magicians burn MP: Orange/Lemon are the cheapest MP (1 MP per meso). Max Magic Guard early.\n\n## Bowman (advance in Henesys) - main stat DEX\n- Hunter (bow): Arrow Bomb AoE up to 6 + stun; faster attacks; best ranged mobbing.\n- Crossbowman (crossbow): Iron Arrow pierces up to 6 in a line; Crossbow Mastery crit damage; higher per-hit and boss damage.\n- Soul Arrow removes ammo cost for 60s. High-tier bows/crossbows mostly come from Woodworking crafting.\n\n## Thief (advance in Kerning City) - main stat LUK\n- Assassin (claw + throwing stars): ranged, auto-lock, Drain lifesteal, crits restore HP/MP. Very safe. Stars cost mesos (Claw Mastery can recover some).\n- Bandit (dagger): Savage Blow up to 6 hits (top single target), Steal for extra loot. Melee, riskier at 30-40, most profitable Thief.\n- Both get Haste (party speed buff). Choose Double Stab (dagger) OR Lucky Seven (claw) in 1st job, not both.\n\n## AP builds (medium)\n- Starting stats: 25 total, 12 in main stat. 5 AP per level.\n- Warrior: all STR; add DEX only if missing often or for weapon requirements (new players: about 40-60 DEX by Lv 30).\n- Magician: all INT; LUK only for gear requirements.\n- Bowman: all DEX; STR only to equip the next bow.\n- Thief: all LUK; DEX for accuracy/weapon requirements.\n- Rule of thumb: frequent MISS = add accuracy stat. Avoid \"-less\" builds as a beginner. AP resets are costly.\n\n## SP notes (medium)\n- 2nd job gives about 121 SP, but maxing every 2nd-job skill needs about 140 - plan which skills to leave unmaxed.\n- Warrior 1st job: max Power Strike and Iron Body. Magician 1st job: Magic Guard + main attack. Bowman: Double Shot / Critical Shot. Thief: Double Stab or Lucky Seven.\n\n## Known bad info to ignore\nSome guides list wrong job trees (e.g. \"Hero at Lv 60\", \"Marksman at Lv 30\", \"Arch Mage at Lv 60\"). In Classic World the 2nd job is the last job for now.\n<\/file>\n\n<file name=\"20-training.md\">\n# Training spots by level\n\nStatus: VERIFIED-PARTIAL (2026-11-06). Source: https://mscwhub.com/en/guides/leveling-1-30 ,\n/leveling-30-60 , /party-quest-guide . Monster/map availability can change with patches.\n\n## Mechanics (medium)\n- Monsters respawn on a 7.56-second global tick; each spawn point has its own cooldown and cap. Killing faster than the map respawns gives no extra EXP - pick maps with enough spawns for your kill speed.\n- Accept every quest for a map before grinding it (quest stacking).\n- Party play gives bonus EXP.\n\n## Lv 1-10: Maple Island\n- Snail Hunting Ground (1-3), Mushroom Forest area: Blue Snails, Green Mushrooms (3-8), Pig Beach (8-10).\n- Finish all Maple Island quests before leaving (free gear and mesos).\n\n## Lv 10-20: Victoria Island\n- Stumpy's Territory (10-13).\n- Deep Forest (13-18): stack Stump, Slime, Green Mushroom, Horny Mushroom quests.\n- Horny Mushroom maps (15-20): good EXP, monsters are aggressive.\n\n## Lv 20-30\n- Slime Forest (20-25).\n- Kerning City Construction Site B1-B3 (20-28), Subway Tunnel (25-30, good for parties, drops ores).\n- Golem's Temple Entrance (25-30).\n- Kerning City Party Quest from Lv 21 (4 players, NPC Lakelis, channels 3-12): often the best EXP for 21-30.\n\n## Lv 30-40\n- Wild Boar Land (30-35, leather for crafting).\n- Ant Tunnel (33-38): Zombie Mushrooms and ants, ores.\n- Sleepywood Dungeon (35-39): Cold Eye, Jr. Boogie.\n- Ant Tunnel / Kerning City Subway (Zombie Mushrooms, ghosts) is the common 30-50 route for all classes.\n\n## Lv 40-60\n- Kerning City Subway Wraith maps (40-50): best mainstream map; Wraiths are undead (Cleric bonus) and teleport close (bad for melee Bandits).\n- Drake, Copper Drake, Tortie, Clang: Lv 45-50 monsters whose HP was lowered in v1.1.0 (map locations not verified for Classic World).\n- Forgotten Hollow (39-59, new zone, entry quest \"Zelya's Map\" from Grendel the Really Old in Ellinia at Lv 39) - NOT open at launch. Only recommend if web search confirms it has opened.\n- Orbis/El Nath/Ludibrium maps are NOT available - do not recommend them.\n\n## Bosses available (high)\n- Mano, Mushmom (about Lv 40, 1-1.5h respawn, can drop Ilbi Throwing-Stars), Shade, Zombie Mushmom, Jr. Balrog.\n<\/file>\n\n<file name=\"30-quests-and-pq.md\">\n# Quests and Party Quests\n\nStatus: VERIFIED-PARTIAL (2026-11-06). Sources: https://mscwhub.com/en/guides/leveling-1-30 ,\n/money-making , /party-quest-guide . Classic World added new Victoria Island quests at launch\nthat are not listed here.\n\n## Worth doing (medium)\n- Jane and the Mushroom (Lv 20, Lith Harbor): about 2,000 EXP, mesos, random Intermediate weapon scroll (can be valuable).\n- Shumi's Lost Sack (Lv 35, Kerning City Construction Site line): 10,000 mesos + 30 Mana Elixirs.\n- Maple Island tutorial quests: free starting gear.\n\n## Kerning City Party Quest - KPQ (high)\n- 4 players, Lv 21+, no upper level limit, 30 min, NPC Lakelis in Kerning City, channels 3-12.\n- Stages: 1 coupons (25 total) -> 2 rope puzzle (3 members on ropes) -> 3 platform puzzle -> 4 barrel passes (6) -> 5 King Slime (Lv 32, ~16,820 HP, splits into Slimes at 50% and on death) -> bonus stage.\n- Reward: Companion's Magic Box from Cloto (earrings, earring scrolls, potions, ores). First clear: quest \"Proof of Companionship\" with an Intermediate earring scroll.\n- Henesys PQ and Ludibrium PQ are NOT in the game yet.\n<\/file>\n\n<file name=\"40-economy.md\">\n# Mesos, potions, crafting\n\nStatus: VERIFIED-PARTIAL (2026-11-06). Sources: https://mscwhub.com/en/guides/money-making ,\n/crafting-guide . Market prices change constantly: never quote prices as facts.\n\n## Potions (medium)\n- Best HP per meso: Red Potion, Fried Chicken, Meat (about 2 HP/meso).\n- Best MP per meso: Orange, Lemon (about 1 MP/meso).\n\n## Making mesos (medium)\n- Level while you earn: pick up all drops, stack quests.\n- Sell to players, not NPCs: attack/magic attack scrolls (NPC price ~1 meso), throwing stars, ores, crafting catalysts, good-stat gear.\n- Keep for crafting: Processed Leather, Fragment of Magic, ores, monster ETC items.\n- Bandit Steal and Assassin star recovery reduce costs. Bowman Soul Arrow saves ammo.\n- Don't plan income around boss drops; Mushmom respawn is slow.\n- Free Market (20 rooms) for trading; trade unlocks at Lv 15 + 24h. RMT leads to the Debt System.\n\n## Crafting (medium)\n- Classic World-only system: 6 professions, 348+ recipes - Smithing, Alchemy, Carpentry/Woodworking, Tailoring, Cooking, Accessory crafting.\n- Few recipes are profitable at NPC prices; profit comes from player demand. Alchemy (ore refining) is the easiest profit; Carpentry is the cheapest to level.\n- Bowman high-tier weapons largely come from Woodworking.\n<\/file>\n\n<\/knowledge_base>";
+const RULES = `You are an assistant for players of MapleStory Classic World (Nexon, global launch October 21 2026). The player is on their phone, not in the game, so there is no screenshot.
+
+<language>Answer in Hebrew. Keep every in-game name exactly as the English client shows it (maps, monsters, NPCs, items, skills, jobs, STR/DEX/INT/LUK, AP, SP). Do not translate or transliterate them.</language>
+
+<style>Lead with the direct answer in the first line, then at most 6 short bullet points unless the player asks for more. No preamble, no closing offers. Use Markdown: **bold** for key names and numbers, "- " bullets.</style>
+
+<sources>Classic World is a re-creation and differs from the original 2005-2008 game. Trust the knowledge base below first. When a fact comes only from your memory of the original game, mark it "(לפי המשחק המקורי - כדאי לוודא)". You cannot browse the web: if you don't know, say so and suggest checking mscwhub.com or meowdb.com/msclassic. If the player's level or job matters and they didn't say it, give a short general answer and ask for it.</sources>
+
+<boundaries>Advice only. Never help with bots, macros, hacks, exploits, duplication or real-money trading. They break Nexon's terms, bans are shared with modern MapleStory, and RMT triggers the Debt System.</boundaries>
+
+${KNOWLEDGE}`;
+
+const MAX_TURNS = 16;
+const STORE_KEY = "maple-chat-v1";
+const $ = (id) => document.getElementById(id);
+const log = $("log"), form = $("form"), q = $("q"), send = $("send");
+let turns = [];   // {role, content}
+let mode = "fast";
+let ctl = null;
+let samplePromise = window.claude?.use ? window.claude.use("sample") : Promise.resolve(null);
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (Array.isArray(s.turns)) turns = s.turns.filter(t => t && t.content);
+      if (s.mode === "deep") mode = "deep";
+    }
+  } catch {}
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ turns: turns.slice(-40), mode })); } catch {}
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function inline(s) {
+  return escapeHtml(s)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/(^|[\s(])_([^_]+)_(?=[\s).,!?]|$)/g, "$1<em>$2</em>");
+}
+// Small, escape-first Markdown: headings, bullets, numbered lists, paragraphs.
+function renderMd(md) {
+  const out = [];
+  let list = null;
+  const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of md.split("\n")) {
+    const line = raw.trimEnd();
+    let m;
+    if (!line.trim()) { close(); continue; }
+    if ((m = line.match(/^\s*#{1,4}\s+(.*)$/))) { close(); out.push(`<h3>${inline(m[1])}</h3>`); continue; }
+    if ((m = line.match(/^\s*[-*•]\s+(.*)$/))) { if (list !== "ul") { close(); out.push("<ul>"); list = "ul"; } out.push(`<li>${inline(m[1])}</li>`); continue; }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))) { if (list !== "ol") { close(); out.push("<ol>"); list = "ol"; } out.push(`<li>${inline(m[1])}</li>`); continue; }
+    if (/^\s*(---|\*\*\*)\s*$/.test(line)) { close(); continue; }
+    close(); out.push(`<p>${inline(line)}</p>`);
+  }
+  close();
+  return out.join("");
+}
+
+function bubble(role, content) {
+  const el = document.createElement("div");
+  el.className = "msg " + (role === "user" ? "me" : "bot");
+  if (role === "user") el.textContent = content; else el.innerHTML = renderMd(content);
+  log.append(el);
+  return el;
+}
+function scrollDown() { const s = $("scroller"); s.scrollTop = s.scrollHeight; }
+function renderAll() {
+  log.querySelectorAll(".msg").forEach(n => n.remove());
+  $("intro").hidden = turns.length > 0;
+  for (const t of turns) bubble(t.role, t.content);
+  scrollDown();
+}
+function setMode(m) {
+  mode = m;
+  $("mode-fast").setAttribute("aria-pressed", String(m === "fast"));
+  $("mode-deep").setAttribute("aria-pressed", String(m === "deep"));
+  save();
+}
+function setBusy(busy) {
+  send.textContent = busy ? "עצור" : "שלח";
+  send.dataset.busy = busy ? "1" : "";
+  q.disabled = busy;
+}
+
+const ERRORS = {
+  not_granted: "צריך לאשר לדף להשתמש ב-Claude. רענן את הדף ואשר בחלון שנפתח.",
+  sampling_disabled: "Claude לא זמין בחשבון הזה.",
+  rate_limited: "הגעת למגבלת השימוש כרגע. נסה שוב בעוד כמה דקות.",
+  session_expired: "צריך להתחבר מחדש ל-claude.ai.",
+  refused: "Claude לא ענה על השאלה הזו. נסה לנסח אחרת.",
+  prompt_too_large: "השיחה ארוכה מדי. לחץ \"חדש\" והתחל שיחה חדשה.",
+  empty_completion: "לא התקבלה תשובה. נסה לנסח אחרת.",
+};
+
+async function ask(text) {
+  text = text.trim();
+  if (!text) return;
+  const sample = await samplePromise;
+  if (!sample) {
+    bubble("assistant", "_הדף הזה עובד רק כשפותחים אותו בתוך claude.ai כשאתה מחובר לחשבון._");
+    return;
+  }
+  $("intro").hidden = true;
+  turns.push({ role: "user", content: text });
+  save();
+  bubble("user", text);
+  const el = bubble("assistant", "");
+  el.innerHTML = '<span class="thinking">חושב...</span>';
+  scrollDown();
+  setBusy(true);
+  ctl = new AbortController();
+  const history = turns.slice(-MAX_TURNS);
+  while (history.length && history[0].role !== "user") history.shift();
+  try {
+    const { text: answer, truncated } = await sample([{ role: "user", content: RULES }, ...history], {
+      cache: false,
+      signal: ctl.signal,
+      modelTier: mode === "deep" ? "default" : "quick",
+      onText: ({ text }) => { el.innerHTML = renderMd(text); scrollDown(); },
+    });
+    const final = truncated ? answer + "\n\n_(התשובה נקטעה - אפשר לבקש המשך)_" : answer;
+    el.innerHTML = renderMd(final);
+    turns.push({ role: "assistant", content: final });
+  } catch (e) {
+    const kept = e && e.text ? e.text : "";
+    if (e && e.code === "cancelled") {
+      el.innerHTML = kept ? renderMd(kept) : '<span class="note">נעצר.</span>';
+      if (kept) turns.push({ role: "assistant", content: kept });
+    } else {
+      const msg = ERRORS[e && e.code] || "משהו השתבש בחיבור. נסה שוב.";
+      el.innerHTML = (kept && e.code !== "refused" ? renderMd(kept) : "") + `<p class="note">${escapeHtml(msg)}</p>`;
+    }
+  } finally {
+    ctl = null;
+    setBusy(false);
+    save();
+    scrollDown();
+    q.focus();
+  }
+}
+
+form.addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  if (send.dataset.busy) { ctl?.abort(); return; }
+  const text = q.value;
+  q.value = ""; q.style.height = "";
+  ask(text);
+});
+q.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); form.requestSubmit(); }
+});
+q.addEventListener("input", () => { q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 140) + "px"; });
+$("chips").addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (b) ask(b.textContent); });
+$("mode-fast").addEventListener("click", () => setMode("fast"));
+$("mode-deep").addEventListener("click", () => setMode("deep"));
+$("reset").addEventListener("click", () => { ctl?.abort(); turns = []; save(); renderAll(); });
+
+load();
+setMode(mode);
+renderAll();
+samplePromise.then((s) => {
+  if (!s) $("fine").textContent = "הדף עובד רק בתוך claude.ai כשאתה מחובר. כל שאלה נספרת על חשבון ה-Claude שלך.";
+});
+</script>
