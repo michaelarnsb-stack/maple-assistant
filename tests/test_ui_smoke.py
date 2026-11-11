@@ -88,3 +88,44 @@ def test_settings_dialog_is_top_level_and_on_top():
     assert dlg.windowFlags() & Qt.WindowStaysOnTopHint
     assert "background" in dlg.styleSheet()
     app.processEvents()
+
+
+def test_second_launch_asks_first_to_show(monkeypatch, tmp_path):
+    from PySide6.QtWidgets import QApplication
+
+    from app import desktop
+
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(desktop, "_server_name", lambda: f"ma-test-{tmp_path.name}")
+    first = desktop.SingleInstance()
+    assert not first.notify_running_instance()
+    first.listen()
+    shown = []
+    first.show_requested.connect(lambda: shown.append(True))
+    second = desktop.SingleInstance()
+    assert second.notify_running_instance()
+    for _ in range(50):
+        app.processEvents()
+        if shown:
+            break
+    assert shown
+
+
+def test_close_button_quits(monkeypatch):
+    from PySide6.QtWidgets import QApplication
+
+    from app import ui
+    from app.config import Settings
+
+    app = QApplication.instance() or QApplication([])
+    quits = []
+    monkeypatch.setattr(QApplication, "quit", staticmethod(lambda: quits.append(True)))
+    overlay = ui.Overlay(Settings())
+    overlay.quit_app()
+    assert quits
+
+
+def test_shortcut_is_noop_outside_packaged_windows_app():
+    from app import desktop
+
+    assert desktop.ensure_desktop_shortcut(None) is None

@@ -39,6 +39,7 @@ jobs:
           --name MapleAssistant
           --add-data "knowledge;knowledge"
           --hidden-import keyring.backends.Windows
+          --icon assets/icon.ico
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

@@ -8,7 +8,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
-from . import config, hotkey
+import threading
+
+from . import config, desktop
 from .ui import Overlay, StartupWorker, build_tray, make_icon
 
 
@@ -24,10 +26,10 @@ def main() -> int:
     app.setFont(QFont("Segoe UI", 10))
     app.setWindowIcon(make_icon())
 
-    if not hotkey.acquire_single_instance():
-        from .ui import message
-        message("info", "עוזר מייפל", "העוזר כבר פתוח. חפש את האייקון הכתום M ליד השעון.")
-        return 0
+    instance = desktop.SingleInstance()
+    if instance.notify_running_instance():
+        return 0  # the running copy shows its window
+    instance.listen()
 
     settings = config.Settings.load()
     overlay = Overlay(settings)
@@ -36,6 +38,14 @@ def main() -> int:
         return 0
 
     overlay.register_hotkey()
+    instance.show_requested.connect(overlay.show_overlay)
+
+    if settings.desktop_shortcut:
+        def make_shortcut() -> None:
+            target = desktop.ensure_desktop_shortcut(settings.shortcut_target)
+            if target:
+                settings.shortcut_target = target
+        threading.Thread(target=make_shortcut, name="shortcut", daemon=True).start()
     tray = build_tray(app, overlay)  # noqa: F841 - must stay referenced
 
     startup = StartupWorker()

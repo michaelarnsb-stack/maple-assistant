@@ -185,6 +185,9 @@ class SettingsDialog(QDialog):
         self.budget.setPrefix("$")
         self.budget.setValue(settings.budget_warning_usd)
         form.addRow("התראה כשההוצאה החודשית עוברת:", self.budget)
+        self.shortcut_box = QCheckBox("אייקון בשולחן העבודה")
+        self.shortcut_box.setChecked(settings.desktop_shortcut)
+        form.addRow("", self.shortcut_box)
         layout.addLayout(form)
 
         note = QLabel("ההתראה היא הערכה מקומית בלבד. תקרת הוצאה אמיתית מגדירים ב-console.anthropic.com ← Limits.")
@@ -222,6 +225,7 @@ class SettingsDialog(QDialog):
         self.settings.hotkey_modifiers, self.settings.hotkey_key = list(mods), hk
         self.settings.opacity = self.opacity.value() / 100
         self.settings.budget_warning_usd = self.budget.value()
+        self.settings.desktop_shortcut = self.shortcut_box.isChecked()
         self.settings.save()
         self.accept()
 
@@ -279,7 +283,8 @@ class Overlay(QWidget):
         header.addWidget(self.shot_box)
         for text, tip, slot in (("🆕", "שיחה חדשה", self.new_conversation),
                                 ("⚙", "הגדרות", self.open_settings),
-                                ("✕", "הסתר (Esc)", self.hide_overlay)):
+                                ("—", "הסתר (Esc) - העוזר ממשיך לרוץ ברקע", self.hide_overlay),
+                                ("✕", "סגור את העוזר לגמרי", self.quit_app)):
             btn = QPushButton(text)
             btn.setToolTip(tip)
             btn.setFixedWidth(34)
@@ -543,6 +548,11 @@ class Overlay(QWidget):
     def _save_geometry(self) -> None:
         g = self.geometry()
         self.settings.geometry = [g.x(), g.y(), g.width(), g.height()]
+
+    def quit_app(self) -> None:
+        self.hide()
+        hotkey.restore_focus(self.game_hwnd)
+        QApplication.quit()
 
     def shutdown(self) -> None:
         self._save_geometry()

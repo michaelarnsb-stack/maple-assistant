@@ -46,6 +46,9 @@ class Settings:
     # Monthly budget warning in USD (local estimate only; the real cap is set
     # in the Anthropic Console).
     budget_warning_usd: float = 5.0
+    # Desktop shortcut to the .exe (re-pointed when the exe moves).
+    desktop_shortcut: bool = True
+    shortcut_target: str | None = None
 
     @classmethod
     def load(cls) -> "Settings":
