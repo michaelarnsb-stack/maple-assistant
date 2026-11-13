@@ -129,3 +129,19 @@ def test_shortcut_is_noop_outside_packaged_windows_app():
     from app import desktop
 
     assert desktop.ensure_desktop_shortcut(None) is None
+
+
+def test_overlay_has_taskbar_button():
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+
+    from app import ui
+    from app.config import Settings
+
+    app = QApplication.instance() or QApplication([])
+    overlay = ui.Overlay(Settings())
+    flags = overlay.windowFlags()
+    # Qt.Tool windows get no taskbar button on Windows.
+    assert (flags & Qt.WindowType_Mask) != Qt.Tool
+    assert flags & Qt.WindowMinimizeButtonHint
+    app.processEvents()

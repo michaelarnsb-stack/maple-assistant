@@ -234,7 +234,10 @@ class SettingsDialog(QDialog):
 
 class Overlay(QWidget):
     def __init__(self, settings: config.Settings):
-        super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+        # Not a Tool window: the player wants a taskbar button. The minimize
+        # hint lets Windows minimize/restore a frameless window from the taskbar.
+        super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+                         | Qt.WindowMinimizeButtonHint)
         self.settings = settings
         self.ledger = UsageLedger()
         self.kb: knowledge.KnowledgeBase | None = None
@@ -283,7 +286,7 @@ class Overlay(QWidget):
         header.addWidget(self.shot_box)
         for text, tip, slot in (("🆕", "שיחה חדשה", self.new_conversation),
                                 ("⚙", "הגדרות", self.open_settings),
-                                ("—", "הסתר (Esc) - העוזר ממשיך לרוץ ברקע", self.hide_overlay),
+                                ("—", "מזער (Esc) - חוזרים בלחיצה על האייקון בשורת המשימות", self.hide_overlay),
                                 ("✕", "סגור את העוזר לגמרי", self.quit_app)):
             btn = QPushButton(text)
             btn.setToolTip(tip)
@@ -357,15 +360,16 @@ class Overlay(QWidget):
 
     def on_hotkey(self, hwnd: int | None) -> None:
         own = int(self.winId())
-        if self.isVisible() and self.isActiveWindow():
+        if self._is_open() and self.isActiveWindow():
             self.hide_overlay()
             return
         if hwnd and hwnd != own:
             self.game_hwnd = hwnd
-        if self.isVisible():
-            # Hide first so the overlay itself isn't in the screenshot.
-            self.hide()
-            QTimer.singleShot(150, self._capture_and_show)
+        if self._is_open():
+            # Get out of the way first so the overlay itself isn't in the screenshot
+            # (minimizing animates, so give it a moment).
+            self.showMinimized()
+            QTimer.singleShot(300, self._capture_and_show)
         else:
             self._capture_and_show()
 
@@ -378,14 +382,21 @@ class Overlay(QWidget):
                 self._set_status(f"צילום המסך נכשל ({e}). השאלה תישלח בלי תמונה.")
         self.show_overlay()
 
+    def _is_open(self) -> bool:
+        return self.isVisible() and not self.isMinimized()
+
     def show_overlay(self) -> None:
+        if self.isMinimized():
+            self.showNormal()
         self.show()
         self.raise_()
         self.activateWindow()
         self.input.setFocus()
 
     def hide_overlay(self) -> None:
-        self.hide()
+        # Minimize rather than hide, so the taskbar button stays and one click
+        # brings the assistant back.
+        self.showMinimized()
         hotkey.restore_focus(self.game_hwnd)
 
     # conversation
